@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+    <!-- templates/dron_project/main.html -->
+{% load static %}
+<head>
+<!-- Required meta tags -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{% load static %}
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We" crossorigin="anonymous">
+<!-- 구글 메테리얼 아이콘 -->
+    <link
+    href="https://fonts.googleapis.com/css?family=Material+Icons|Material+Icons+Outlined|Material+Icons+Two+Tone|Material+Icons+Round|Material+Icons+Sharp"
+    rel="stylesheet">
+<!-- JQuery -->
+<script  src="http://code.jquery.com/jquery-latest.min.js"></script>
+
+
+<title>인스타그램 </title>
+<style>
+    .box {
+        width: 40px;
+        height: 40px; 
+        border-radius: 70%;
+        overflow: hidden;
+    }
+    .profile {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        
+    }
+    
+    .modal_overlay {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        left: 0;
+        top: 0;
+        display: none;      <!-- none 에서 flex 가 되면 나타나는게됨. -->
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(1.5px);
+        -webkit-backdrop-filter: blur(1.5px);
+    }
+
+    .modal_window {
+        background: white;
+        backdrop-filter: blur(13.5px);
+        -webkit-backdrop-filter: blur(13.5px);
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        width: 800px;
+        height: 600px;
+        position: relative;
+        padding: 10px;
+        text-align : center;
+    }
+    .large-button {
+        padding: 10px 30px;
+        font-size: 18px;
+    }
+    .file_list {
+        margin: 10px 10px;
+        padding: 10px;
+        width : 250px;
+        height : 470px;
+        background: #f9f9f9;
+        border: 1px solid #e0e0e0;
+    }
+</style>
+</head>
+<body>
+
+<!-- <h1> body.</h1> -->
+<!-- db 데이터 보여주기
+<div>
+    {% for feed in feeds %}
+        <p>{{feed.content}}</p>
+        <p>{{feed.user_id}}</p>
+        <p>{{feed.like_count}}</p>
+    {% endfor %}
+</div> <-->
+<nav class="navbar navbar-expand-lg navbar-light bg-light" style="position:fixed;width:100%;height:115px">
+<div class="container-fluid" style="justify-content: space-between; flex-wrap: nowrap; min-width: 1000px">
+    <a class="navbar-brand" href="/" , style="margin:100px 50px"><img style="height: 100px; object-fit: contain" src="{% static 'dron_project/LIMJUHAN_LOGO.png' %}" alt="Logo"></a>
+    <button type="button" class="btn btn-outline-primary large-button" id="image_upload">Test</button>
+    <button type="button" class="btn btn-outline-secondary large-button" style="margin-right:100px">Log in</button>
+    
+
+
+
+    
+</div>
+</div>
+</nav>
+<!-- body 배경 채우기 -->
+
+<div style="
+        width: 100%;
+        height: 100vh;
+        background-image: url('{% static 'dron_project/background.png' %}');
+        background-size: cover;
+        background-position: center;
+    ">
+<h1 style="
+    color: white;
+    text-align: center;
+    padding-top: 200px;
+    font-size: 60px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+">
+    Welcome to JUHAN's Dron Project
+</h1>
+
+<!-- 왼쪽 사이드 -->
+
+<!-- 첫번째 모달 -->
+<div id="first_modal" class="modal_overlay">
+    <div class="modal_window">
+        <div style="display: flex; flex-direction: row; justify-content: space-between">
+            
+            <div style="width:40px;">
+                
+            </div>
+            <div>
+            드론 촬영 이미지 업로드
+            </div>
+            <div>
+                <span class="modal_close material-icons-outlined">
+                    close
+                    </span>
+            </div>
+            
+        </div> <!-- 모달 상단 -->
+        <div style="background: white; border-style:dotted; width:778px; height:540px; margin-top:10px" class="img_upload_space" > </div> <!-- 모달 내용-->
+    </div>
+</div>
+
+<!-- 두번째 모달 -->
+<div id="second_modal" class="modal_overlay">
+    <div class="modal_window">
+        <div style="border-bottom:solid 1px gray; display: flex; felx-direction: row; justify-content: space-between">
+            
+            <div style="width:40px;">
+                
+            </div>
+            <div>
+            드론 촬영 이미지 업로드
+            </div>
+            <div>
+                <span class="modal_close material-icons-outlined">
+                    close
+                    </span>
+            </div>
+            
+        </div> <!-- 모달 상단 -->
+
+        <div style="display:flex; flex-direction:row;">
+            <div class="img_upload_space" style="background: white; width:500px; height:540px; margin:10px"  > </div> <!-- 모달 내용-->
+            <div style="border-left: solid 1px gray">
+                <div id="file_list" class="file_list"> <!-- textarea 에서 파일 목록으로 대체 -->
+                </div>
+                <button id="feed_create_button" type="button" class="btn btn-primary" style="width:90%; height:50px ;margin-left:5px;">
+                    공유하기
+                </button>
+            </div>
+        </div>
+</div>
+<!-- Optional JavaScript; choose one of the two! -->
+
+<script>
+
+
+$(".modal_close").click(function(){
+    $('#first_modal').css({
+        display:'none',
+    });     // ; 는 안써도 되지만 어쨌든 통일하기
+    // 클릭시 스크롤바 없애기 -> 최상위 태그인 body 태그를 가져와야함 
+    $('#second_modal').css({
+        display:'none',
+    });
+});
+
+let files;
+
+$('#image_upload').click(function (){   // id 는 # 이고 class 는 . 으로 선택
+    $('#first_modal').css({
+        display:'flex',
+    });     // ; 는 안써도 되지만 어쨌든 통일하기
+    // 클릭시 스크롤바 없애기 -> 최상위 태그인 body 태그를 가져와야함 
+    $(document.body).css({
+        overflow:'hidden'
+    });
+});
+
+
+$('#feed_create_button').click(function () {
+    alert("공유 완료");
+
+    let file = files[0];
+    let image = files[0].name;
+    let content = $('#input_feed_content').val();
+
+    let fd = new FormData();
+
+    fd.append('file', file);
+    fd.append('image', image);
+    fd.append('content', content);
+
+    $.ajax({
+        url: "/content/upload",
+        data: fd,
+        method: "POST",
+        processData: false,
+        contentType: false,
+        success: function (data) {
+            console.log("성공");
+        },
+        error: function (request, status, error) {
+            console.log("에러");
+        },
+        complete: function () {
+            console.log("완료");
+            location.replace("/main");
+        }
+    });
+});
+
+$('.img_upload_space')
+    .on("dragover", dragOver)
+    .on("dragleave", dragOver)
+    .on("drop", uploadFiles);
+
+function dragOver(e){
+    e.stopPropagation();
+    e.preventDefault();
+}
+
+function uploadFiles(e){
+    e.stopPropagation();
+    e.preventDefault();
+    
+    var dataTransfer = e.originalEvent.dataTransfer; // 올바르게 dataTransfer 객체 접근
+    files = e.target.files || dataTransfer.files;
+
+    if (!files.length) {
+        console.log("파일이 드래그되지 않았습니다.");
+        return;
+    }
+    
+    console.log("파일 업로드 완료: " + files[0].name);
+
+    if (files.length > 1) {
+        alert('한 번에 1개의 파일만 업로드 할 수 있습니다.');
+        return;
+    }
+
+    if (!files[0].type.match(/image.*/)) {
+        alert('업로드한 파일이 이미지가 아닙니다.');
+        return;
+    }
+
+    $('#first_modal').hide();
+    $('#second_modal').css('display', 'flex');
+    
+    $('.img_upload_space').css({
+        "background-image": "url(" + window.URL.createObjectURL(files[0]) + ")",
+        "background-size": "cover",  
+        "background-repeat":"no-repeat",
+        "background-position":"center",
+    });
+
+    if (e.type === "dragover") {
+        $(e.target).css({
+            "background-color": "black",
+            "outline-offset": "-20px"
+        });
+    } else {
+        $(e.target).css({
+            "background-color": "gray",
+            "outline-offset": "-10px"
+        });
+    }
+}
+
+
+</script>
+
+<!-- Option 1: Bootstrap Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-U1DAWAznBHeqEIlVSCgzq+c9gqGAJn5c/t99JyeKa9xxaYpSvHU5awsuZVVFIhvj"
+        crossorigin="anonymous"></script>
+
+<!-- Option 2: Separate Popper and Bootstrap JS -->
+<!--
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js" integrity="sha384-eMNCOe7tC1doHpGoWe/6oMVemdAVTMs2xqW4mwXrXsW0L84Iytr2wi5v2QjrP/xp" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.min.js" integrity="sha384-cn7l7gDp0eyniUwwAZgrzD06kc/tftFf19TOAs2zVinnD/C7E91j9yyk5//jjpt/" crossorigin="anonymous"></script>
+-->
+
+</body>
+</html>
