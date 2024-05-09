@@ -65,9 +65,9 @@
         font-size: 18px;
     }
     .file_list {
-        margin: 10px 10px;
+        margin: 10px -2px;
         padding: 10px;
-        width : 250px;
+        width : 778px;
         height : 470px;
         background: #f9f9f9;
         border: 1px solid #e0e0e0;
@@ -88,7 +88,11 @@
 <nav class="navbar navbar-expand-lg navbar-light bg-light" style="position:fixed;width:100%;height:115px">
 <div class="container-fluid" style="justify-content: space-between; flex-wrap: nowrap; min-width: 1000px">
     <a class="navbar-brand" href="/" , style="margin:100px 50px"><img style="height: 100px; object-fit: contain" src="{% static 'dron_project/LIMJUHAN_LOGO.png' %}" alt="Logo"></a>
-    <button type="button" class="btn btn-outline-primary large-button" id="image_upload">Test</button>
+    <div>
+    <button type="button" class="btn btn-outline-primary large-button" id="image_upload" style ="margin-right:20px">Test</button>
+    <button type="button" class="btn btn-outline-success large-button">Result</button>
+
+    </div>
     <button type="button" class="btn btn-outline-secondary large-button" style="margin-right:100px">Log in</button>
     
 
@@ -110,7 +114,7 @@
 <h1 style="
     color: white;
     text-align: center;
-    padding-top: 200px;
+    padding-top: 150px;
     font-size: 60px;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
 ">
@@ -161,10 +165,10 @@
         </div> <!-- 모달 상단 -->
 
         <div style="display:flex; flex-direction:row;">
-            <div class="img_upload_space" style="background: white; width:500px; height:540px; margin:10px"  > </div> <!-- 모달 내용-->
-            <div style="border-left: solid 1px gray">
-                <div id="file_list" class="file_list"> <!-- textarea 에서 파일 목록으로 대체 -->
-                </div>
+    <!-- 이미지 미리보기 삭제 -->
+            <div >
+                <ul id="file_list" class="file_list" style="list-style: none; padding-left: 0; margin: 10px 0;"></ul> <!-- textarea 에서 파일 목록으로 대체 -->
+                
                 <button id="feed_create_button" type="button" class="btn btn-primary" style="width:90%; height:50px ;margin-left:5px;">
                     공유하기
                 </button>
@@ -236,57 +240,51 @@ $('.img_upload_space')
     .on("dragleave", dragOver)
     .on("drop", uploadFiles);
 
-function dragOver(e){
+function dragOver(e) {
     e.stopPropagation();
     e.preventDefault();
 }
 
-function uploadFiles(e){
+function uploadFiles(e) {
     e.stopPropagation();
     e.preventDefault();
-    
-    var dataTransfer = e.originalEvent.dataTransfer; // 올바르게 dataTransfer 객체 접근
-    files = e.target.files || dataTransfer.files;
+
+    var dataTransfer = e.originalEvent.dataTransfer;
+    var files = e.target.files || dataTransfer.files;
 
     if (!files.length) {
         console.log("파일이 드래그되지 않았습니다.");
         return;
     }
-    
-    console.log("파일 업로드 완료: " + files[0].name);
 
-    if (files.length > 1) {
-        alert('한 번에 1개의 파일만 업로드 할 수 있습니다.');
-        return;
-    }
+    $('#file_list').empty(); // 기존 파일 목록 초기화
 
-    if (!files[0].type.match(/image.*/)) {
-        alert('업로드한 파일이 이미지가 아닙니다.');
-        return;
+    for (var i = 0; i < files.length; i++) {
+        if (!files[i].type.match(/image.*/)) {
+            alert('업로드한 파일이 이미지가 아닙니다: ' + files[i].name);
+            return;
+        }
+
+        // 파일 목록에 파일 제목 추가
+        $('#file_list').append('<li style="margin-bottom: 5px;">' + files[i].name + '</li>');
     }
 
     $('#first_modal').hide();
     $('#second_modal').css('display', 'flex');
-    
-    $('.img_upload_space').css({
-        "background-image": "url(" + window.URL.createObjectURL(files[0]) + ")",
-        "background-size": "cover",  
-        "background-repeat":"no-repeat",
-        "background-position":"center",
-    });
-
-    if (e.type === "dragover") {
-        $(e.target).css({
-            "background-color": "black",
-            "outline-offset": "-20px"
-        });
-    } else {
-        $(e.target).css({
-            "background-color": "gray",
-            "outline-offset": "-10px"
-        });
-    }
 }
+
+// 파일 업로드 영역 스타일 수정
+$('.img_upload_space').on("dragover", function (e) {
+    $(e.target).css({
+        "background-color": "black",
+        "outline-offset": "-20px"
+    });
+}).on("dragleave drop", function (e) {
+    $(e.target).css({
+        "background-color": "gray",
+        "outline-offset": "-10px"
+    });
+});
 
 
 </script>
