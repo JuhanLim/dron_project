@@ -202,38 +202,7 @@ $('#image_upload').click(function (){   // id 는 # 이고 class 는 . 으로 �
     });
 });
 
-
-$('#feed_create_button').click(function () {
-    alert("공유 완료");
-
-    let file = files[0];
-    let image = files[0].name;
-    let content = $('#input_feed_content').val();
-
-    let fd = new FormData();
-
-    fd.append('file', file);
-    fd.append('image', image);
-    fd.append('content', content);
-
-    $.ajax({
-        url: "/content/upload",
-        data: fd,
-        method: "POST",
-        processData: false,
-        contentType: false,
-        success: function (data) {
-            console.log("성공");
-        },
-        error: function (request, status, error) {
-            console.log("에러");
-        },
-        complete: function () {
-            console.log("완료");
-            location.replace("/main");
-        }
-    });
-});
+let filesToUpload = [];
 
 $('.img_upload_space')
     .on("dragover", dragOver)
@@ -250,7 +219,9 @@ function uploadFiles(e) {
     e.preventDefault();
 
     var dataTransfer = e.originalEvent.dataTransfer;
-    var files = e.target.files || dataTransfer.files;
+    var files = dataTransfer.files;
+
+    console.log('File dragged: ',files )
 
     if (!files.length) {
         console.log("파일이 드래그되지 않았습니다.");
@@ -258,6 +229,8 @@ function uploadFiles(e) {
     }
 
     $('#file_list').empty(); // 기존 파일 목록 초기화
+
+    filesToUpload= []; // 파일목록 초기화
 
     for (var i = 0; i < files.length; i++) {
         if (!files[i].type.match(/image.*/)) {
@@ -267,11 +240,45 @@ function uploadFiles(e) {
 
         // 파일 목록에 파일 제목 추가
         $('#file_list').append('<li style="margin-bottom: 5px;">' + files[i].name + '</li>');
+        filesToUpload.push(files[i]); // 업로드할 파일목록 추가 
     }
+
+    console.log('업로드할 파일 목록 : ',filesToUpload)
 
     $('#first_modal').hide();
     $('#second_modal').css('display', 'flex');
 }
+$('#feed_create_button').on('click', function () {
+    console.log('업로드 준비된 파일 목록 : ',filesToUpload)
+    if (filesToUpload.length === 0) {
+        alert("업로드할 파일이 없습니다.");
+        return;
+    }
+
+    var formData = new FormData();
+    
+    for (var i = 0; i < filesToUpload.length; i++) {
+        formData.append('files[]', filesToUpload[i]);
+    }
+
+    console.log('Form Data:', formData);
+
+    $.ajax({
+        url: '/api/uploads/upload/',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (response) {
+            alert('파일 업로드 성공: ' + JSON.stringify(response.files));
+            console.log("완료");
+            location.replace("/");
+        },
+        error: function (xhr) {
+            alert('파일 업로드 실패: ' + xhr.responseText);
+        }
+    });
+});
 
 // 파일 업로드 영역 스타일 수정
 $('.img_upload_space').on("dragover", function (e) {

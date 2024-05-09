@@ -37,6 +37,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    'uploads',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
@@ -126,3 +128,11 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'dron_project/static')]
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# boto3 Settings
+
+NAVER_CLOUD_ACCESS_KEY = 'ZKJaC1gGTW0uL1nd0pU4'
+NAVER_CLOUD_SECRET_KEY = 't3YRJtWctEFWN9wiy9TcCK6r2xLwnpsy0knO9UR8'
+NAVER_CLOUD_REGION = 'kr-standard'  # Adjust to your specific region
+NAVER_CLOUD_BUCKET = 'dron-image'
+NAVER_CLOUD_ENDPOINT = 'https://kr.object.ncloudstorage.com'
