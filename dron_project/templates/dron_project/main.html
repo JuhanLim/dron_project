@@ -272,13 +272,34 @@ $('#feed_create_button').on('click', function () {
         success: function (response) {
             alert('파일 업로드 성공: ' + JSON.stringify(response.files));
             console.log("완료");
-            location.replace("/");
+            // 업로드 후 파일 처리 바로 하기  
+            processFilesAfterUpload(response.files);
         },
         error: function (xhr) {
             alert('파일 업로드 실패: ' + xhr.responseText);
         }
     });
 });
+
+function processFilesAfterUpload(files) {
+    files.forEach(function (file_key) { 
+        console.log('Processing file: ', file_key);
+        $.ajax({
+            url: '/api/uploads/download-and-process/',
+            type: 'POST',
+            data : JSON.stringify({file_key: file_key}),
+            contentType : 'application/json', 
+            success : function (response) { 
+                alert('파일 처리 및 결과 업로드 성공 : ' + JSON.stringify(response.file_key))
+                console.log("처리완료");
+            },
+            error : function (xhr) { 
+                alert('파일 처리 및 결과 업로드 실패 : '+ xhr.responseText)
+            }
+        });
+    });
+    location.replace("/"); // 홈으로 이동 
+}
 
 // 파일 업로드 영역 스타일 수정
 $('.img_upload_space').on("dragover", function (e) {

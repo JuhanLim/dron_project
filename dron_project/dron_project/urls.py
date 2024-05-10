@@ -22,5 +22,5 @@ urlpatterns = [
     #path("admin/", admin.site.urls),
     path('',Main.as_view()),
     path('main/',Main.as_view()),
-    path('api/uploads/', include('uploads.urls')),
+    path('api/uploads/', include('uploads.urls')), #uploads
 ]

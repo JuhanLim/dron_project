@@ -1,7 +1,7 @@
 from ultralytics import YOLO
 import cv2
 import numpy as np
-
+import os 
 def yolo_model_create():
     print("Yolo model_create~~~~~~~~~~")
     trained_yolo = YOLO(r"C:\Users\v\Desktop\dron_project\nano_finetunning.pt")
@@ -9,10 +9,10 @@ def yolo_model_create():
 
 trained_yolo = yolo_model_create()
 
-def predict_yolo():
+def predict_yolo(img_path):
     
     print("predict_yolo~~~~~~~~~~~")
-    img_path = r"C:\Users\v\Desktop\dron_project\test_image\A3_T1_W1_H1_S102_1_20211022_112359_0568.jpg"
+    #img_path = r"C:\Users\v\Desktop\dron_project\test_image\A3_T1_W1_H1_S102_1_20211022_112359_0568.jpg"
     frame = cv2.imread(img_path)
     # Extract bounding boxes, masks, and classification probabilities
 
@@ -28,12 +28,13 @@ def predict_yolo():
         x1, y1, x2, y2 = map(int, box.xyxy[0])  # Convert to integers
         cv2.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
     inpainted_image = cv2.inpaint(frame, mask, inpaintRadius=7, flags=cv2.INPAINT_NS)
-    cv2.imshow('Inpainted Image', inpainted_image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    return 
+    processed_img_path = os.path.join('processed', os.path.basename(img_path))
+    os.makedirs('processed', exist_ok=True)
+    print("처리된 이미지 저장 경로 : " ,processed_img_path)
+    cv2.imwrite(processed_img_path, inpainted_image)
+    return processed_img_path
 
-predict_yolo()
+
 # img_path = r"C:\Users\v\Desktop\dron_project\test_image\A3_T1_W1_H1_S102_1_20211022_112359_0568.jpg"
 
 
