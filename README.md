@@ -30,5 +30,6 @@
     execute_from_command_line(sys.argv)
     main()
     ```
-
+5. PTGui 를 위한 EXIF 데이터 만들기 
+  -현재 csv 파일에서 필요한 데이터 : 위도경도(gps) ,고도, 방향 ( 요:헤딩 , 피치 : 기울기 , 롤 : 카메라 회전 )
 
