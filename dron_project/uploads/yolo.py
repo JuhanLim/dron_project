@@ -11,7 +11,7 @@ trained_yolo = yolo_model_create()
 
 def predict_yolo(img_path):
     
-    print("predict_yolo~~~~~~~~~~~")
+    print("파노라마 생성 완료 yolo 작업 시작 ----------- ")
     #img_path = r"C:\Users\v\Desktop\dron_project\test_image\A3_T1_W1_H1_S102_1_20211022_112359_0568.jpg"
     frame = cv2.imread(img_path)
     # Extract bounding boxes, masks, and classification probabilities

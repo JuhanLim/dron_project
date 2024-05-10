@@ -17,6 +17,7 @@ import boto3
 import glob
 import cv2
 import exif
+import numpy as np
 
 class UploadFilesToS3(APIView):
     parser_classes = (MultiPartParser, FormParser)
@@ -25,7 +26,7 @@ class UploadFilesToS3(APIView):
         files = request.FILES.getlist('files[]')
         uploaded_files = []
         csv_data = {}
-        
+
         # Configure Boto3 Client
         s3_client = boto3.client(
             's3',
@@ -38,6 +39,7 @@ class UploadFilesToS3(APIView):
         # Separate CSV and image files
         csv_files = [f for f in files if f.name.lower().endswith('.csv')]
         image_files = [f for f in files if f.name.lower().endswith(('.jpg', '.jpeg', '.png'))]
+
         # Parse CSV files for GPS data
         for csv_file in csv_files:
             csv_name = os.path.splitext(csv_file.name)[0]
@@ -51,10 +53,11 @@ class UploadFilesToS3(APIView):
                     'pitch': float(row.get('attitude__pitch', 0)),
                     'yaw': float(row.get('attitude__yaw', 0))
                 }
-        # 업로드 할때 GPS 정보를 삽입해서 클라우드에 업로드. 
+
+        # Convert GPS information to EXIF
         def add_gps_to_exif(img, gps_info):
             """Add GPS data to an image."""
-            exif_dict = piexif.load(img.info.get('exif', b''))
+            exif_dict = piexif.load(img.info.get('exif', b'') or piexif.dump({}) )
             lat_deg, lat_ref = convert_to_deg(abs(gps_info['latitude']), 'N' if gps_info['latitude'] >= 0 else 'S')
             lon_deg, lon_ref = convert_to_deg(abs(gps_info['longitude']), 'E' if gps_info['longitude'] >= 0 else 'W')
             gps_ifd = {
@@ -68,22 +71,52 @@ class UploadFilesToS3(APIView):
             exif_dict['GPS'] = gps_ifd
             exif_bytes = piexif.dump(exif_dict)
             return exif_bytes
+
         def convert_to_deg(value, ref):
             degrees = int(value)
             minutes = int((value - degrees) * 60)
             seconds = int((value - degrees - minutes / 60) * 3600 * 1000)
             return ((degrees, 1), (minutes, 1), (seconds, 1000)), ref
-        
-        
+
+        # Resize Image using OpenCV
+        def resize_image_opencv(image_file, max_width=360):
+            """가로 세로 비율을 유지하면서 영상 크기를 최대 너비로 조정합니다."""
+            # Pillow로 이미지 읽기
+            img = Image.open(image_file)
+
+            # Pillow 이미지를 numpy 배열로 변환
+            img_np = np.array(img)
+
+            # numpy 배열을 통해 OpenCV 형식으로 변환
+            if len(img_np.shape) == 2:
+                # 흑백 이미지인 경우
+                height, width = img_np.shape
+            else:
+                height, width, _ = img_np.shape
+            print("높이,넓이 : " , height, width)
+            # 최대 너비로 조정
+            if width > max_width:
+                aspect_ratio = height / width
+                new_width = max_width
+                new_height = int(new_width * aspect_ratio)
+                img_np = cv2.resize(img_np, (new_width, new_height), interpolation=cv2.INTER_AREA)
+
+            # 이미지 회전
+            img_np = cv2.rotate(img_np, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            # Pillow 형식으로 변환하여 반환
+            img_resized = Image.fromarray(img_np)
+            return img_resized
+
+        # Process and upload images
         for image_file in image_files:
             image_name = os.path.splitext(image_file.name)[0]
             gps_info = csv_data.get(image_name)
 
             if gps_info:
-                img = Image.open(image_file)
+                img = resize_image_opencv(image_file)  # Resize image before adding EXIF
                 exif_bytes = add_gps_to_exif(img, gps_info)
-                
-                #이미지 임시 저장 ( c://tmp 폴더는 사용할 수 없었음 )
+
+                # Save image temporarily
                 with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp_file:
                     local_image_path = tmp_file.name
                     img.save(local_image_path, 'jpeg', exif=exif_bytes)
@@ -94,6 +127,8 @@ class UploadFilesToS3(APIView):
                     uploaded_files.append(image_file.name)
                 except Exception as e:
                     return Response({'message': str(e)}, status=500)
+                finally:
+                    os.remove(local_image_path)
 
         return Response({'message': 'Files uploaded successfully', 'files': uploaded_files}, status=200)
     
@@ -161,7 +196,7 @@ class DownloadAndProcessImage(APIView):
 
         # Read and Store GPS Data
         def read_and_store_gps_data(images):
-            """Read and store GPS data for images before resizing."""
+            """Read and store GPS data for images before stitching."""
             gps_data = {}
             for img in images:
                 gps_info = get_gps_data(img)
@@ -182,47 +217,21 @@ class DownloadAndProcessImage(APIView):
             gps_positions.sort(key=lambda x: (x[1][0], x[1][1]))
             return [img for img, _ in gps_positions]
 
-        # Resize Images Without Losing GPS Data
-        def resize_images(images_dir, output_dir, max_width=1024): # 메모리 아웃 떠서 2000 에서 1024 로 조정 
-            """Resize images to a smaller size."""
-            if not os.path.exists(output_dir):
-                os.makedirs(output_dir, exist_ok=True)
-            image_files = glob.glob(os.path.join(images_dir, "*.jpg"))
-            resized_images = []
-
-            for image_file in image_files:
-                img = cv2.imread(image_file)
-                height, width = img.shape[:2]
-
-                if width > max_width:
-                    aspect_ratio = height / width
-                    new_width = max_width
-                    new_height = int(new_width * aspect_ratio)
-                    img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
-
-                resized_path = os.path.join(output_dir, os.path.basename(image_file))
-                cv2.imwrite(resized_path, img)
-                resized_images.append(resized_path)
-
-            return resized_images
-
         # Create Panorama Using OpenCV
         def create_opencv_panorama(images_dir, output_file, gps_data, use_opencl=False):
             """Create a panorama using OpenCV's Stitcher class."""
+            
             cv2.ocl.setUseOpenCL(use_opencl)  # Disable OpenCL if needed
-            resized_images_dir = os.path.join(images_dir, "resized")
-            if not os.path.exists(resized_images_dir):
-                os.makedirs(resized_images_dir, exist_ok=True)
-
-            resized_images = resize_images(images_dir, resized_images_dir)
-            sorted_images = approximate_image_positions_with_gps(resized_images, gps_data)
-
+            image_files = glob.glob(os.path.join(images_dir, "*.jpg"))
+            sorted_images = approximate_image_positions_with_gps(image_files, gps_data)
+            print("sorted_images : " ,sorted_images)
             images = [cv2.imread(img) for img in sorted_images]
             stitcher = cv2.Stitcher_create() if int(cv2.__version__[0]) >= 4 else cv2.createStitcher()
-            stitcher.setPanoConfidenceThresh(0.8)
-
+            stitcher.setPanoConfidenceThresh(0.8)  # Adjust as necessary
+            # stitcher.setSeamFinder(cv2.detail_NoSeamFinder()) 없음. cv2.detail 을 직접 사용해야함
+            print("파노라마 시작")
             status, panorama = stitcher.stitch(images)
-
+            
             if status != cv2.Stitcher_OK:
                 print("Stitching failed with status code:", status)
                 return None

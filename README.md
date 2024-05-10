@@ -5,8 +5,11 @@
   -https://guide.ncloud-docs.com/docs/storage-storage-8-2
   -boto3 사용 
   -pip install boto3
-  -
-  -
+  -이미지 업로드시 버전 충돌 
+    -10.3.0 / 4.9.0.80 -> pip install Pillow==9.0.0 opencv-python==4.5.5.64 
+    -그래도 충돌나서 pillow 로 파일 읽어서 cv 작업할수있게 np 변환후 image_path 가아닌 file 로 작업 
+    -FileNotFoundError: [Errno 2] No such file or directory: b'' -> 업로드 파일에 gps 정보가 없을때. 
+      -piexif.load(img.info.get('exif', b'') or piexif.dump({}) -> dump 도 추가해주면됨.  
 4. Django 프로젝트 생성
   -django-admin startproject dron_project
   -python manage.py runserver 
@@ -30,6 +33,9 @@
     execute_from_command_line(sys.argv)
     main()
     ```
+      ->
+    win32, PTGui 설정 후 Dron_project modul 을 찾을 수 없다하여.. manage.py 다시 수정해주었음 
+      -> yolo import 에러나는건 그냥 경로 맞춰줌 
 5. PTGui 를 위한 EXIF 데이터 만들기 
   -현재 csv 파일에서 필요한 데이터 : 위도경도(gps) ,고도, 방향 ( 요:헤딩 , 피치 : 기울기 , 롤 : 카메라 회전 )
 
