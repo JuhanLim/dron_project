@@ -202,7 +202,7 @@ $('#image_upload').click(function (){   // id 는 # 이고 class 는 . 으로 �
     });
 });
 
-let filesToUpload = [];
+
 
 $('.img_upload_space')
     .on("dragover", dragOver)
@@ -213,6 +213,8 @@ function dragOver(e) {
     e.stopPropagation();
     e.preventDefault();
 }
+
+let filesToUpload = [];
 
 function uploadFiles(e) {
     e.stopPropagation();
@@ -233,17 +235,13 @@ function uploadFiles(e) {
     filesToUpload= []; // 파일목록 초기화
 
     for (var i = 0; i < files.length; i++) {
-        if (!files[i].type.match(/image.*/)) {
-            alert('업로드한 파일이 이미지가 아닙니다: ' + files[i].name);
-            return;
-        }
-
-        // 파일 목록에 파일 제목 추가
         $('#file_list').append('<li style="margin-bottom: 5px;">' + files[i].name + '</li>');
-        filesToUpload.push(files[i]); // 업로드할 파일목록 추가 
+        filesToUpload.push(files[i]); // 파일목록에 파일이름 추가
     }
 
     console.log('업로드할 파일 목록 : ',filesToUpload)
+
+
 
     $('#first_modal').hide();
     $('#second_modal').css('display', 'flex');
