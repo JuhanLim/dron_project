@@ -10,34 +10,30 @@ def yolo_model_create():
 trained_yolo = yolo_model_create()
 
 def predict_yolo(img_path):
-    
     print("predict_yolo~~~~~~~~~~~")
-    #img_path = r"C:\Users\v\Desktop\dron_project\test_image\A3_T1_W1_H1_S102_1_20211022_112359_0568.jpg"
     frame = cv2.imread(img_path)
-    # Extract bounding boxes, masks, and classification probabilities
 
-
-# Run inference on the image
     result = trained_yolo([frame])[0]
-    #predict = trained_yolo.predict(img_path)
+    
     boxes = result.boxes
     mask = np.zeros(frame.shape[:2], dtype=np.uint8)
     probs = result.probs
-        # # Visualize results (example: drawing bounding boxes)
+        
     for box in boxes:
-        x1, y1, x2, y2 = map(int, box.xyxy[0])  # Convert to integers
+        x1, y1, x2, y2 = map(int, box.xyxy[0]) 
         cv2.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
+    # 박스친 부분 impaint 적용
     inpainted_image = cv2.inpaint(frame, mask, inpaintRadius=7, flags=cv2.INPAINT_NS)
-    cv2.imshow('IMG', inpainted_image)   # 읽은 이미지를 화면에 표시      
-    cv2.waitKey()           # 키가 입력될 때 까지 대기      
+    cv2.imshow('IMG', inpainted_image)        
+    cv2.waitKey()               
     cv2.destroyAllWindows() 
     #processed_img_path = os.path.join('processed', os.path.basename(img_path))
     #os.makedirs('processed', exist_ok=True)
     #print("처리된 이미지 저장 경로 : " ,processed_img_path)
-    #cv2.imwrite(processed_img_path, inpainted_image)
+    cv2.imwrite(r"C:\Users\v\Desktop\dron_project\test_image\4_result.png", inpainted_image)
     return #processed_img_path
 
-img_path = r'C:\Users\v\Desktop\dron_project\dron_project\panorama\stitched_panorama.jpg'
+img_path = r'C:\Users\v\Desktop\dron_project\test_image\4.png'
 predict_yolo(img_path)
 
 # img_path = r"C:\Users\v\Desktop\dron_project\test_image\A3_T1_W1_H1_S102_1_20211022_112359_0568.jpg"

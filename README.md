@@ -1,5 +1,11 @@
+![Alt text](dron_project/dron_project/static/dron_project/home.png "Dron_Image_project")
+
 1. yolo 파인튜닝 ( base model : NANO 모델 사용 ( https://github.com/stephansturges/NANO ) ) 
   -WALDO 모델보다 경량화 된 모델.
+  - yolo 작업 후 파노라마 작업을 할지 , 파노라마 작업 후 결과물에 yolo 작업을 할지에 대한 고민 
+    -yolo 작업을 먼저하게 되면 매 사진마다 작업을 해야하고 , 프로젝트 목적에 큰 의미가 없다고 생각 ( 최종결과물이 지저분해 도로의 상태를 잘 나타내지 못할것 같았음 ) 
+    -파노라마 작업을 먼저하고 결과물에 yolo 작업을 해보니, 파노라마 사진이 너무 커서 yolo 작업이 불가능했음. (검출불가)
+    -모델의 한계 등등을 고려해서 그래도 적용가능한 yolo 작업을 먼저 실행하기로. 
 2. OpenCV 를 사용해 검출한 객체 inpaint 적용
 3. 네이버 클라우드 연동하기
   -https://guide.ncloud-docs.com/docs/storage-storage-8-2
@@ -36,6 +42,21 @@
       ->
     win32, PTGui 설정 후 Dron_project modul 을 찾을 수 없다하여.. manage.py 다시 수정해주었음 
       -> yolo import 에러나는건 그냥 경로 맞춰줌 
-5. PTGui 를 위한 EXIF 데이터 만들기 
+  -Test 버튼에서 이미지 업로드 및 다운로드하여 yolo 작업, 파노라마 작업 자동화후 다시 result 버킷으로 업로드
+  -Result 버튼에서 업로드된 result 버킷의 사진 목록을 가져오기
+
+
+5. 위치정보를 포함한 EXIF 데이터 만들기 
+  -label 데이터의 csv 파일에 있는 gps 정보만 추출하여 이미지에 이식
   -현재 csv 파일에서 필요한 데이터 : 위도경도(gps) ,고도, 방향 ( 요:헤딩 , 피치 : 기울기 , 롤 : 카메라 회전 )
+6. 파노라마 작업 
+  -PTGui는 Pro 버전이 아닌이상 COM 자동화가 불가능해서 파이썬에서 사용불가.. ( 385유로 =50만원 정도..)
+  -KRPano 는 설치버전이 아니어서 COM 자동화가 안되는것 같음
+  -opencv 의 stitch 기능을 통해 파노라마 작업. 
+    -정밀도가 떨어지고 좌우로 붙여진다는 점이 한계
+7. 세번째 모달 만들어서 result 파노라마 표시하기. 
+  -세번째 모달을 팝업 하는데 있어서 오류. 
+  -이벤트 버블링 ( 부모 요소로 전파되는것 ) 때문이었음. event.stopPropagation() 설정해주었음. 
+  -클라우드에서 result 버킷에서 이미지 가져오기 완료
+  -이미지 보여줄 때 비율 맞춰야함. 
 
