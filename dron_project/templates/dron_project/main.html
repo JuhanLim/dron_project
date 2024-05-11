@@ -73,6 +73,11 @@
         background: #f9f9f9;
         border: 1px solid #e0e0e0;
     }
+    .img_result_space img {
+        max-width: 300%; /* 컨테이너의 너비에 맞춰 조정 */
+        height: 1000%; /* 비율 유지 */
+    }
+    
 </style>
 </head>
 <body>
@@ -122,33 +127,6 @@
     Welcome to JUHAN's Dron Project
 </h1>
 
-<!-- 왼쪽 사이드 -->
-
-<!-- 첫번째 모달 -->
-<div id="first_modal" class="modal_overlay">
-    <div class="modal_window">
-            <div style="display: flex; flex-direction: row; justify-content: space-between"> <!-- 상단 아이콘 -->
-            
-                <div style="width:40px;">
-                    
-                </div>
-                <div>
-                드론 촬영 이미지 업로드
-                </div>
-                <div>
-                    <span class="modal_close material-icons-outlined">
-                        close
-                        </span>
-                </div>
-            
-            </div> 
-        <div style="background: white; border-style:dotted; width:778px; height:540px; margin-top:10px" class="img_upload_space" > 
-            <div style = "margin:230px ; color:gray ;font-size:12px">이미지와 GPS 정보를 Drag & Drop 하세요 </div>
-        </div> <!-- 모달 내용-->
-    </div>
-</div>
-
-<!-- 두번째 모달 -->
 <!-- 첫번째 모달 -->
 <div id="first_modal" class="modal_overlay">
     <div class="modal_window">
@@ -156,7 +134,7 @@
             <div style="width:40px;"></div>
             <div>드론 촬영 이미지 업로드</div>
             <div>
-                <span class="modal_close material-icons-outlined">close</span>
+                <span class="modal_close material-icons-outlined" style ="cursor:pointer;">close</span>
             </div>
         </div>
         <div style="background: white; border-style:dotted; width:778px; height:540px; margin-top:10px" class="img_upload_space"> 
@@ -172,7 +150,7 @@
             <div style="width:40px;"></div>
             <div>드론 촬영 이미지 업로드</div>
             <div>
-                <span class="modal_close material-icons-outlined">close</span>
+                <span class="modal_close material-icons-outlined" style ="cursor:pointer;">close</span>
             </div>
         </div>
         <div style="display:flex; flex-direction:row;">
@@ -191,11 +169,12 @@
             <div style="width:40px;"></div>
             <div>파노라마 결과 이미지</div>
             <div>
-                <span class="modal_close material-icons-outlined">close</span>
+                <span class="modal_close material-icons-outlined" style ="cursor:pointer;">close</span>
             </div>
         </div>
-        <div style="background: white; border-style:dotted; width:778px; height:540px; margin-top:10px" class="img_result_space"> 
-            <div style="margin:230px; color:gray; font-size:12px">파노라마</div>
+        <div style="background: white; border-style:double; width:778px; height:540px; margin-top:10px" > 
+            <div style="margin-top:65px; color:gray;" class="img_result_space"></div>
+            
         </div>
     </div>
 </div>
@@ -204,31 +183,31 @@
 
 $(document).ready(function() {
     $('.modal_close').click(function(event) {
-        event.stopPropagation(); // Prevents the event from bubbling up the DOM tree
+        event.stopPropagation(); 
         $(this).closest('.modal_overlay').css('display', 'none');
         $(document.body).css('overflow', 'auto');
     });
 
-    // Example for other buttons
+    // 1,3 모달 팝업
     $('#image_upload').click(function(event) {
-        event.stopPropagation(); // Stops the click event from bubbling up
+        event.stopPropagation();
         $('#first_modal').css('display', 'flex');
         $(document.body).css('overflow', 'hidden');
     });
 
     $('#show_result').click(function(event) {
-        event.stopPropagation(); // Stops the click event from bubbling up
+        event.stopPropagation(); // 이벤트 버블링 방지 
         
-        // Fetch images from the server
+        // S3 이미지 가져오기
         console.log("result 클릭")
         $.ajax({
-            url: '/api/uploads/result/', // Adjust the URL based on your Django urls.py
+            url: '/api/uploads/result/',
             method: 'GET',
             success: function (data) {
                 console.log("AJAX 요청 성공:", data);
 
                 const container = $('.img_result_space');
-                container.empty(); // Clear previous images
+                container.empty(); // 초기화
 
                 if (!data.images || data.images.length === 0) {
                     console.log("받은 이미지 데이터가 비어 있습니다.");
@@ -239,11 +218,11 @@ $(document).ready(function() {
                     const imageElement = $('<img>').attr({
                         src: img.url,
                         alt: 'Loaded Image',
-                        style: 'width: 100%; height: auto;' // Adjust styling as needed
+                        style: 'width: 100%; height: 400px;' // 이미지 크기 변경
                     });
                     container.append(imageElement);
                 });
-                $('#third_modal').css('display', 'flex'); // Show the modal with new images
+                $('#third_modal').css('display', 'flex'); // 모달 팝업
                 $(document.body).css('overflow', 'hidden');
             },
             error: function () {
@@ -358,10 +337,10 @@ function processFilesAfterUpload(files) {
     location.replace("/"); // 홈으로 이동 
 }
 
-// 파일 업로드 영역 스타일 수정
+// 파일 업로드시 배경 수정
 $('.img_upload_space').on("dragover", function (e) {
     $(e.target).css({
-        "background-color": "black",
+        "background-color": "gray",
         "outline-offset": "-20px"
     });
 }).on("dragleave drop", function (e) {
