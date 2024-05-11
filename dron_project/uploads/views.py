@@ -34,6 +34,7 @@ result_bucket = settings.NAVER_CLOUD_RESULT_BUCKET
 
 
 class UploadFilesToS3(APIView):
+    ''' naver cloud 에 업로드 모델 . 업로드 전 resize 와 EXIF 작업 '''
     parser_classes = (MultiPartParser, FormParser)
 
     def post(self, request, *args, **kwargs):
@@ -139,6 +140,7 @@ class UploadFilesToS3(APIView):
         return Response({'message': 'Files uploaded successfully', 'files': uploaded_files}, status=200)
     
 class DownloadAndProcessImage(APIView):
+    ''' dwonload 이지만 업로드 버튼 클릭시 cloud 업로드된 사진을 다시 받아서 처리하는 모델 '''
     def post(self, request, *args, **kwargs):
         file_key = request.data.get('file_key')
 
@@ -191,7 +193,7 @@ class DownloadAndProcessImage(APIView):
 
         # Read and Store GPS Data
         def read_and_store_gps_data(images):
-            """Read and store GPS data for images before stitching."""
+            """ stitch 전 gps 정보 확인 """
             gps_data = {}
             for img in images:
                 gps_info = get_gps_data(img)
@@ -201,7 +203,7 @@ class DownloadAndProcessImage(APIView):
 
         # gps 정보로 대략적인 indexing  
         def approximate_image_positions_with_gps(images, gps_data):
-            """Approximate image positions based on stored GPS data."""
+            """gps 정보로 인덱싱"""
             gps_positions = [(img, gps_data.get(os.path.basename(img))) for img in images]
             gps_positions = [(img, data) for img, data in gps_positions if data is not None]
 
@@ -214,7 +216,7 @@ class DownloadAndProcessImage(APIView):
 
         # Create Panorama Using OpenCV
         def create_opencv_panorama(images_dir, output_file, gps_data, use_opencl=False):
-            """Create a panorama using OpenCV's Stitcher class."""
+            """파노라마 제작"""
             
             cv2.ocl.setUseOpenCL(use_opencl)  # 메모리 초과로 opencl 설정 
             image_files = glob.glob(os.path.join(images_dir, "*.jpg"))
@@ -251,7 +253,7 @@ class DownloadAndProcessImage(APIView):
         if not stitched_panorama:
             return Response({'message': 'Panorama creation failed'}, status=500)
 
-        # 파노라마 결과물에 대해 yolo 작업 시작 
+        # 파노라마 결과물에 대해 yolo 작업 시작 (각 사진마다 yolo 하기로 변경) 
         #processed_panorama = predict_yolo(stitched_panorama)
 
         try:
@@ -261,20 +263,18 @@ class DownloadAndProcessImage(APIView):
 
         return Response({'message': 'Panorama created, processed, and uploaded successfully'}, status=200)
     
-class FetchImagesFromS3(APIView):
+class FetchImagesFromS3(APIView): # Result 에 출력하기 위한 모델 
     def get(self, request, *args, **kwargs):
         try:
-            # Retrieve the list of objects in the bucket
             response = s3_client.list_objects_v2(Bucket=result_bucket)
             images = []
             if 'Contents' in response:
                 for item in response['Contents']:
                     key = item['Key']
-                    # Generate a presigned URL for each image
                     url = s3_client.generate_presigned_url(
                         'get_object',
                         Params={'Bucket': result_bucket, 'Key': key},
-                        ExpiresIn=3600  # The URL expires in one hour
+                        ExpiresIn=3600  # 1시간 유효
                     )
                     images.append({'filename': key, 'url': url})
             return JsonResponse({'images': images}, safe=False)
