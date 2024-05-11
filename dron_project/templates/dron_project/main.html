@@ -90,7 +90,7 @@
     <a class="navbar-brand" href="/" , style="margin:100px 50px"><img style="height: 100px; object-fit: contain" src="{% static 'dron_project/LIMJUHAN_LOGO.png' %}" alt="Logo"></a>
     <div>
     <button type="button" class="btn btn-outline-primary large-button" id="image_upload" style ="margin-right:20px">Test</button>
-    <button type="button" class="btn btn-outline-success large-button">Result</button>
+    <button type="button" class="btn btn-outline-success large-button" id="show_result">Result</button>
 
     </div>
     <button type="button" class="btn btn-outline-secondary large-button" style="margin-right:100px">Log in</button>
@@ -126,21 +126,21 @@
 <!-- 첫번째 모달 -->
 <div id="first_modal" class="modal_overlay">
     <div class="modal_window">
-        <div style="display: flex; flex-direction: row; justify-content: space-between">
+            <div style="display: flex; flex-direction: row; justify-content: space-between"> <!-- 상단 아이콘 -->
             
-            <div style="width:40px;">
-                
-            </div>
-            <div>
-            드론 촬영 이미지 업로드
-            </div>
-            <div>
-                <span class="modal_close material-icons-outlined">
-                    close
-                    </span>
-            </div>
+                <div style="width:40px;">
+                    
+                </div>
+                <div>
+                드론 촬영 이미지 업로드
+                </div>
+                <div>
+                    <span class="modal_close material-icons-outlined">
+                        close
+                        </span>
+                </div>
             
-        </div> <!-- 모달 상단 -->
+            </div> 
         <div style="background: white; border-style:dotted; width:778px; height:540px; margin-top:10px" class="img_upload_space" > 
             <div style = "margin:230px ; color:gray ;font-size:12px">이미지와 GPS 정보를 Drag & Drop 하세요 </div>
         </div> <!-- 모달 내용-->
@@ -177,9 +177,47 @@
             </div>
         </div>
 </div>
-<!-- Optional JavaScript; choose one of the two! -->
+
+<!--result 모달 -->
+
 
 <script>
+// result 모달
+{% comment %} 
+$('#show_result').click(function () {
+    // Fetch images from the server
+    console.log("result 클릭")
+    $.ajax({
+        url: '/api/uploads/result/', // Adjust the URL based on your Django urls.py
+        method: 'GET',
+        success: function (data) {
+            console.log("AJAX 요청 성공:", data);
+
+            const container = $('.img_result_space');
+            container.empty(); // Clear previous images
+
+            if (!data.images || data.images.length === 0) {
+                console.log("받은 이미지 데이터가 비어 있습니다.");
+                return;
+            }
+
+            data.images.forEach(function (img) {
+                const imageElement = $('<img>').attr({
+                    src: img.url,
+                    alt: 'Loaded Image',
+                    style: 'width: 100%; height: auto;' // Adjust styling as needed
+                });
+                container.append(imageElement);
+            });
+            $('#result_modal').css('display', 'flex'); // Show the modal with new images
+            $(document.body).css('overflow', 'hidden');
+        },
+        error: function () {
+            console.error("AJAX 요청 실패:", xhr.status, status, error);
+            alert('이미지를 가져오는 데 실패했습니다.');
+        }
+    });
+}); {% endcomment %}
 
 
 $(".modal_close").click(function(){

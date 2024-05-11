@@ -4,6 +4,7 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
+from django.http import JsonResponse # 클라우드 이미지를 로컬에 받지 않기 위한
 from django.conf import settings
 import boto3
 from botocore.exceptions import NoCredentialsError
@@ -19,6 +20,19 @@ import cv2
 import exif
 import numpy as np
 
+
+# naver cloud 인증 정보
+s3_client = boto3.client(
+    's3',
+    region_name=settings.NAVER_CLOUD_REGION,
+    endpoint_url=settings.NAVER_CLOUD_ENDPOINT,
+    aws_access_key_id=settings.NAVER_CLOUD_ACCESS_KEY,
+    aws_secret_access_key=settings.NAVER_CLOUD_SECRET_KEY
+)
+dron_bucket = settings.NAVER_CLOUD_BUCKET
+result_bucket = settings.NAVER_CLOUD_RESULT_BUCKET
+
+
 class UploadFilesToS3(APIView):
     parser_classes = (MultiPartParser, FormParser)
 
@@ -27,14 +41,6 @@ class UploadFilesToS3(APIView):
         uploaded_files = []
         csv_data = {}
 
-        # Configure Boto3 Client
-        s3_client = boto3.client(
-            's3',
-            region_name=settings.NAVER_CLOUD_REGION,
-            endpoint_url=settings.NAVER_CLOUD_ENDPOINT,
-            aws_access_key_id=settings.NAVER_CLOUD_ACCESS_KEY,
-            aws_secret_access_key=settings.NAVER_CLOUD_SECRET_KEY
-        )
 
         # Separate CSV and image files
         csv_files = [f for f in files if f.name.lower().endswith('.csv')]
@@ -79,7 +85,7 @@ class UploadFilesToS3(APIView):
             return ((degrees, 1), (minutes, 1), (seconds, 1000)), ref
 
         # Resize Image using OpenCV
-        def resize_image_opencv(image_file, max_width=360):
+        def resize_image_opencv(image_file, max_width=720):
             """가로 세로 비율을 유지하면서 영상 크기를 최대 너비로 조정합니다."""
             # Pillow로 이미지 읽기
             img = Image.open(image_file)
@@ -139,17 +145,8 @@ class DownloadAndProcessImage(APIView):
         if not file_key:
             return Response({'message': 'No file key provided'}, status=400)
 
-        # Configure Boto3 Client for Naver Cloud Storage
-        s3_client = boto3.client(
-            's3',
-            region_name=settings.NAVER_CLOUD_REGION,
-            endpoint_url=settings.NAVER_CLOUD_ENDPOINT,
-            aws_access_key_id=settings.NAVER_CLOUD_ACCESS_KEY,
-            aws_secret_access_key=settings.NAVER_CLOUD_SECRET_KEY
-        )
-
-        dron_bucket = settings.NAVER_CLOUD_BUCKET
-        result_bucket = settings.NAVER_CLOUD_RESULT_BUCKET
+        # dron_bucket = settings.NAVER_CLOUD_BUCKET
+        # result_bucket = settings.NAVER_CLOUD_RESULT_BUCKET
         local_images_dir = 'downloads'
         panorama_output_dir = 'panorama'
         os.makedirs(local_images_dir, exist_ok=True)
@@ -221,11 +218,16 @@ class DownloadAndProcessImage(APIView):
         def create_opencv_panorama(images_dir, output_file, gps_data, use_opencl=False):
             """Create a panorama using OpenCV's Stitcher class."""
             
-            cv2.ocl.setUseOpenCL(use_opencl)  # Disable OpenCL if needed
+            cv2.ocl.setUseOpenCL(use_opencl)  # 메모리 초과로 opencl 설정 
             image_files = glob.glob(os.path.join(images_dir, "*.jpg"))
             sorted_images = approximate_image_positions_with_gps(image_files, gps_data)
+            processed_images = []
+            for img_path in sorted_images:
+                processed_img_path = predict_yolo(img_path)
+                processed_images.append(processed_img_path)
+            
             print("sorted_images : " ,sorted_images)
-            images = [cv2.imread(img) for img in sorted_images]
+            images = [cv2.imread(img) for img in processed_images]
             stitcher = cv2.Stitcher_create() if int(cv2.__version__[0]) >= 4 else cv2.createStitcher()
             stitcher.setPanoConfidenceThresh(0.8)  # Adjust as necessary
             # stitcher.setSeamFinder(cv2.detail_NoSeamFinder()) 없음. cv2.detail 을 직접 사용해야함
@@ -252,11 +254,31 @@ class DownloadAndProcessImage(APIView):
             return Response({'message': 'Panorama creation failed'}, status=500)
 
         # 파노라마 결과물에 대해 yolo 작업 시작 
-        processed_panorama = predict_yolo(stitched_panorama)
+        #processed_panorama = predict_yolo(stitched_panorama)
 
         try:
-            s3_client.upload_file(processed_panorama, result_bucket, os.path.basename(processed_panorama))
+            s3_client.upload_file(stitched_panorama, result_bucket, os.path.basename(stitched_panorama))
         except Exception as e:
             return Response({'message': str(e)}, status=500)
 
         return Response({'message': 'Panorama created, processed, and uploaded successfully'}, status=200)
+    
+class FetchImagesFromS3(APIView):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Retrieve the list of objects in the bucket
+            response = s3_client.list_objects_v2(Bucket=result_bucket)
+            images = []
+            if 'Contents' in response:
+                for item in response['Contents']:
+                    key = item['Key']
+                    # Generate a presigned URL for each image
+                    url = s3_client.generate_presigned_url(
+                        'get_object',
+                        Params={'Bucket': result_bucket, 'Key': key},
+                        ExpiresIn=3600  # The URL expires in one hour
+                    )
+                    images.append({'filename': key, 'url': url})
+            return JsonResponse({'images': images}, safe=False)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
