@@ -85,8 +85,8 @@ class UploadFilesToS3(APIView):
             seconds = int((value - degrees - minutes / 60) * 3600 * 1000)
             return ((degrees, 1), (minutes, 1), (seconds, 1000)), ref
 
-        # Resize Image ( 메모리 초과로 리사이즈 필요 . 최대가 720 정도에 3장까지 )
-        def resize_image_opencv(image_file, max_width=720):
+        # Resize Image ( 메모리 초과로 리사이즈 필요 . 최대가 700 정도에 3~4장까지 )
+        def resize_image_opencv(image_file, max_width=700):
             """가로 세로 비율을 유지하면서 영상 크기를 최대 너비로 조정합니다."""
             # Pillow로 이미지 읽기 ( opencv 버전 충돌로 path 가 아닌 pillow 로 읽어야함 )
             img = Image.open(image_file)
