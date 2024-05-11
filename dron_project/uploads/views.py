@@ -14,14 +14,14 @@ import csv
 import piexif
 from PIL import Image
 import tempfile 
-import boto3
+
 import glob
 import cv2
 import exif
 import numpy as np
 
-
-# naver cloud 인증 정보
+import boto3
+# naver cloud key
 s3_client = boto3.client(
     's3',
     region_name=settings.NAVER_CLOUD_REGION,
@@ -63,7 +63,7 @@ class UploadFilesToS3(APIView):
         # Convert GPS information to EXIF
         def add_gps_to_exif(img, gps_info):
             """Add GPS data to an image."""
-            exif_dict = piexif.load(img.info.get('exif', b'') or piexif.dump({}) )
+            exif_dict = piexif.load(img.info.get('exif', b'') or piexif.dump({}) ) #초기엔 exif 없으므로 오류남 dump 추가해줘야함 
             lat_deg, lat_ref = convert_to_deg(abs(gps_info['latitude']), 'N' if gps_info['latitude'] >= 0 else 'S')
             lon_deg, lon_ref = convert_to_deg(abs(gps_info['longitude']), 'E' if gps_info['longitude'] >= 0 else 'W')
             gps_ifd = {
@@ -84,10 +84,10 @@ class UploadFilesToS3(APIView):
             seconds = int((value - degrees - minutes / 60) * 3600 * 1000)
             return ((degrees, 1), (minutes, 1), (seconds, 1000)), ref
 
-        # Resize Image using OpenCV
+        # Resize Image ( 메모리 초과로 리사이즈 필요 . 최대가 720 정도에 3장까지 )
         def resize_image_opencv(image_file, max_width=720):
             """가로 세로 비율을 유지하면서 영상 크기를 최대 너비로 조정합니다."""
-            # Pillow로 이미지 읽기
+            # Pillow로 이미지 읽기 ( opencv 버전 충돌로 path 가 아닌 pillow 로 읽어야함 )
             img = Image.open(image_file)
 
             # Pillow 이미지를 numpy 배열로 변환
@@ -113,13 +113,13 @@ class UploadFilesToS3(APIView):
             img_resized = Image.fromarray(img_np)
             return img_resized
 
-        # Process and upload images
+        # exif , resize and upload images
         for image_file in image_files:
             image_name = os.path.splitext(image_file.name)[0]
             gps_info = csv_data.get(image_name)
 
             if gps_info:
-                img = resize_image_opencv(image_file)  # Resize image before adding EXIF
+                img = resize_image_opencv(image_file)  # resize 하면 exif 없어져서 미리 리사이징
                 exif_bytes = add_gps_to_exif(img, gps_info)
 
                 # Save image temporarily
@@ -145,14 +145,12 @@ class DownloadAndProcessImage(APIView):
         if not file_key:
             return Response({'message': 'No file key provided'}, status=400)
 
-        # dron_bucket = settings.NAVER_CLOUD_BUCKET
-        # result_bucket = settings.NAVER_CLOUD_RESULT_BUCKET
         local_images_dir = 'downloads'
         panorama_output_dir = 'panorama'
         os.makedirs(local_images_dir, exist_ok=True)
         os.makedirs(panorama_output_dir, exist_ok=True)
 
-        # Fetch All Images from dron-image Bucket
+        # NaverCloud 에서 Image Fetch 
         def fetch_images_from_s3(bucket_name, local_dir):
             objects = s3_client.list_objects_v2(Bucket=bucket_name).get('Contents', [])
             for obj in objects:
@@ -166,7 +164,7 @@ class DownloadAndProcessImage(APIView):
 
         # Extract GPS Data from Images
         def get_gps_data(image_path):
-            """Extract GPS coordinates from an image using EXIF metadata."""
+            """이미지에서 gps 정보 추출 """
             print(f"Extracting GPS data from: {image_path}")
             if not os.path.exists(image_path):
                 print(f"File not found: {image_path}")
@@ -201,7 +199,7 @@ class DownloadAndProcessImage(APIView):
                     gps_data[os.path.basename(img)] = gps_info
             return gps_data
 
-        # Approximate Image Positions Using Stored GPS Data
+        # gps 정보로 대략적인 indexing  
         def approximate_image_positions_with_gps(images, gps_data):
             """Approximate image positions based on stored GPS data."""
             gps_positions = [(img, gps_data.get(os.path.basename(img))) for img in images]
